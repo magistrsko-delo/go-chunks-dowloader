@@ -11,6 +11,7 @@ type Env struct {
 	AwsStorageUrl string
 	OriginAllowed string
 	Env string
+	Port string
 }
 
 func InitEnv()  {
@@ -18,6 +19,7 @@ func InitEnv()  {
 		AwsStorageUrl:   			os.Getenv("AWS_STORAGE_URL"),
 		OriginAllowed:  			os.Getenv("ORIGIN_ALLOWED"),
 		Env: 			  			os.Getenv("ENV"),
+		Port: 						os.Getenv("PORT"),
 	}
 	fmt.Println(envStruct)
 }

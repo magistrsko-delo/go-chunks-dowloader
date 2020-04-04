@@ -42,7 +42,7 @@ func main()  {
 		},
 	})
 
-	log.Fatal(http.ListenAndServe(":8005", corsOpts.Handler(r)))
+	log.Fatal(http.ListenAndServe(":" + Models.GetEnvStruct().Port, corsOpts.Handler(r)))
 }
 
 
