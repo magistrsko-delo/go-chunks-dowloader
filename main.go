@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/heptiolabs/healthcheck"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/joho/godotenv"
@@ -25,6 +26,9 @@ func init()  {
 }
 
 func main()  {
+
+	health := healthcheck.NewHandler()
+	health.AddLivenessCheck("aws-service-check: " + Models.GetEnvStruct().AwsStorageUrl + "health", healthcheck.HTTPGetCheck(Models.GetEnvStruct().AwsStorageUrl + "health", 5*time.Second))
 
 	zipkinPropagator := zipkin.NewZipkinB3HTTPHeaderPropagator()
 	injector := jaeger.TracerOptions.Injector(opentracing.HTTPHeaders, zipkinPropagator)
@@ -57,6 +61,8 @@ func main()  {
 			"X-Requested-With",
 		},
 	})
+
+	go http.ListenAndServe("0.0.0.0:8888", health)
 
 	if err == nil {
 		fmt.Println("success: TRACING")
