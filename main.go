@@ -8,6 +8,12 @@ import (
 	"go-chunks-dowloader/router"
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	opentracing "github.com/opentracing/opentracing-go"
+	jaeger "github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/zipkin"
 )
 
 func init()  {
@@ -18,6 +24,27 @@ func init()  {
 }
 
 func main()  {
+
+	zipkinPropagator := zipkin.NewZipkinB3HTTPHeaderPropagator()
+	injector := jaeger.TracerOptions.Injector(opentracing.HTTPHeaders, zipkinPropagator)
+	extractor := jaeger.TracerOptions.Extractor(opentracing.HTTPHeaders, zipkinPropagator)
+
+	zipkinSharedRPCSpan := jaeger.TracerOptions.ZipkinSharedRPCSpan(true)
+
+	sender, _ := jaeger.NewUDPTransport("jaeger-agent.istio-system:5775", 0)
+	tracer, closer := jaeger.NewTracer(
+		"chunk-downloader",
+		jaeger.NewConstSampler(true),
+		jaeger.NewRemoteReporter(
+			sender,
+			jaeger.ReporterOptions.BufferFlushInterval(1*time.Second)),
+		injector,
+		extractor,
+		zipkinSharedRPCSpan,
+	)
+	defer closer.Close()
+
+
 	r := mux.NewRouter()
 
 	api := r.PathPrefix("/v1").Subrouter()
@@ -42,7 +69,7 @@ func main()  {
 		},
 	})
 
-	log.Fatal(http.ListenAndServe(":" + Models.GetEnvStruct().Port, corsOpts.Handler(r)))
+	log.Fatal(http.ListenAndServe(":" + Models.GetEnvStruct().Port, nethttp.Middleware(tracer, corsOpts.Handler(r)))  )
 }
 
 
