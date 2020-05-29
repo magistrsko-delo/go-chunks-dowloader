@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/joho/godotenv"
@@ -31,19 +32,7 @@ func main()  {
 
 	zipkinSharedRPCSpan := jaeger.TracerOptions.ZipkinSharedRPCSpan(true)
 
-	sender, _ := jaeger.NewUDPTransport("jaeger-agent.istio-system:5775", 0)
-	tracer, closer := jaeger.NewTracer(
-		"chunk-downloader",
-		jaeger.NewConstSampler(true),
-		jaeger.NewRemoteReporter(
-			sender,
-			jaeger.ReporterOptions.BufferFlushInterval(1*time.Second)),
-		injector,
-		extractor,
-		zipkinSharedRPCSpan,
-	)
-	defer closer.Close()
-
+	sender, err := jaeger.NewUDPTransport(Models.GetEnvStruct().TracingConnection, 0)
 
 	r := mux.NewRouter()
 
@@ -69,7 +58,25 @@ func main()  {
 		},
 	})
 
-	log.Fatal(http.ListenAndServe(":" + Models.GetEnvStruct().Port, nethttp.Middleware(tracer, corsOpts.Handler(r)))  )
+	if err == nil {
+		fmt.Println("success: TRACING")
+		tracer, closer := jaeger.NewTracer(
+			"chunk-downloader",
+			jaeger.NewConstSampler(true),
+			jaeger.NewRemoteReporter(
+				sender,
+				jaeger.ReporterOptions.BufferFlushInterval(1*time.Second)),
+			injector,
+			extractor,
+			zipkinSharedRPCSpan,
+		)
+		defer closer.Close()
+		log.Fatal(http.ListenAndServe(":" + Models.GetEnvStruct().Port, nethttp.Middleware(tracer, corsOpts.Handler(r)))  )
+	} else {
+		fmt.Println( "err: ", err)
+		log.Fatal(http.ListenAndServe(":" + Models.GetEnvStruct().Port, corsOpts.Handler(r)) )
+	}
+
 }
 
 

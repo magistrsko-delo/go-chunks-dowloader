@@ -12,6 +12,7 @@ type Env struct {
 	OriginAllowed string
 	Env string
 	Port string
+	TracingConnection string
 }
 
 func InitEnv()  {
@@ -20,6 +21,7 @@ func InitEnv()  {
 		OriginAllowed:  			os.Getenv("ORIGIN_ALLOWED"),
 		Env: 			  			os.Getenv("ENV"),
 		Port: 						os.Getenv("PORT"),
+		TracingConnection: 			os.Getenv("TRACING_CONNECTION"),
 	}
 	fmt.Println(envStruct)
 }
